@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common'
-import puppeteer from 'puppeteer'
+//import puppeteer from 'puppeteer'
 import * as dayjs from 'dayjs'
 import * as path from 'path'
 import * as fs from 'fs'
 import { RedisIdService } from 'src/services/utils/redis-id.service'
+import { chromium } from 'playwright'
 
 @Injectable()
 export class ReceiptService {
@@ -155,12 +156,17 @@ export class ReceiptService {
       period
     })
 
-    const browser = await puppeteer.launch({
+    /*const browser = await puppeteer.launch({
+      executablePath: '/usr/bin/chromium',
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
       headless: true
+    })*/
+    const browser = await chromium.launch({
+      args: ['--no-sandbox']
     })
 
     const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: 'networkidle0' })
+    await page.setContent(html /*,{ waitUntil: 'networkidle0'}*/)
 
     const pdf = await page.pdf({
       format: 'A4',
