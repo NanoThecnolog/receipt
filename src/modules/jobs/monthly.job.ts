@@ -1,25 +1,27 @@
 // monthly.job.ts
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
 import * as nodemailer from 'nodemailer'
 import { ReceiptService } from '../receipt/receipt.service'
 
 @Injectable()
 export class MonthlyJob {
+    private logger = new Logger('SendService')
     constructor(private readonly receiptService: ReceiptService) { }
-    //'*/1 * * * *'
-    @Cron('0 9 10 * *', {
+    //'*/1 * * * *' a cada 1 min
+    //'0 9 10 * *' todo dia 10 de cada mes, as 9 da manha
+    @Cron('*/1 * * * *', {
         timeZone: 'America/Sao_Paulo'
     })
     async handle() {
-        console.log("handle iniciando...")
+        this.logger.log("handle iniciando...")
         const pdfBuffer = await this.receiptService.generate()
-        console.log("Solicitando envio de email")
+        this.logger.log("Solicitando envio de email")
         await this.sendEmail(pdfBuffer)
     }
 
     private async sendEmail(pdf: Buffer) {
-        console.log("enviando email")
+        this.logger.log("enviando email")
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
             port: Number(process.env.SMTP_PORT),
@@ -39,7 +41,7 @@ export class MonthlyJob {
 
         await transporter.sendMail({
             from: '"Ericsson Gomes" <contato@ericssongomes.com>',
-            to: process.env.Recipient,
+            to: /*process.env.Recipient*/'ericssongomes.fotografia@gmail.com',
             subject: 'Recibo mensal',
             text: 'Segue recibo em anexo',
             attachments: [
@@ -49,7 +51,7 @@ export class MonthlyJob {
                 }
             ]
         })
-        console.log("email enviado")
+        this.logger.log("email enviado")
         setTimeout(async () => {
             await transporter.sendMail({
                 from: '"Ericsson Gomes" <contato@ericssongomes.com>',

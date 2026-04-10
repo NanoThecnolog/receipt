@@ -26,6 +26,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^6.1.1",
     "dayjs": "^1.11.20",
+    "ioredis": "^5.10.1",
     "nodemailer": "^8.0.3",
     "puppeteer": "^24.40.0",
     "reflect-metadata": "^0.2.2",

@@ -3,15 +3,18 @@ import puppeteer from 'puppeteer'
 import * as dayjs from 'dayjs'
 import * as path from 'path'
 import * as fs from 'fs'
+import { RedisIdService } from 'src/services/utils/redis-id.service'
 
 @Injectable()
 export class ReceiptService {
-  private receiptNumber = 1852
+  //private receiptNumber = 1852
 
-  private getNextReceiptNumber(): number {
+  constructor(private readonly redis: RedisIdService) { }
+
+  /*private getNextReceiptNumber(): number {
     this.receiptNumber += 1
     return this.receiptNumber
-  }
+  }*/
 
   private getSignatureBase64(): string {
     const filePath = path.resolve(__dirname, '../../assets/signature.png')
@@ -142,7 +145,7 @@ export class ReceiptService {
   async generate(): Promise<Buffer> {
     const now = new Date()
 
-    const receiptNumber = this.getNextReceiptNumber()
+    const receiptNumber = await this.redis.generate()
     const date = this.formatDate(now)
     const period = this.formatPeriod(now)
 
