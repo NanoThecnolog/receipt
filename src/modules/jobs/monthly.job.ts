@@ -10,7 +10,7 @@ export class MonthlyJob {
   constructor(private readonly receiptService: ReceiptService) {}
   //'*/1 * * * *' a cada 1 min
   //'0 9 10 * *' todo dia 10 de cada mes, as 9 da manha
-  @Cron('0 15 10 * *', {
+  @Cron('10 15 10 * *', {
     timeZone: 'America/Sao_Paulo',
   })
   async handle() {
