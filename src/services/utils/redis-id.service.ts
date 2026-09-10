@@ -1,25 +1,25 @@
-import { Injectable } from "@nestjs/common";
-import { RedisService } from "src/infra/redis/redis.service";
+import { Injectable } from '@nestjs/common';
+import { RedisService } from 'src/infra/redis/redis.service';
 
 @Injectable()
 export class RedisIdService {
-    private readonly KEY = 'rec:id'
-    private readonly Initial = 1854
+  private readonly KEY = 'rec:id';
+  private readonly Initial = 3527;
 
-    constructor(private readonly redisService: RedisService) { }
+  constructor(private readonly redisService: RedisService) {}
 
-    async onModuleInit() {
-        const redis = this.redisService.getClient()
+  async onModuleInit() {
+    const redis = this.redisService.getClient();
 
-        const exists = await redis.exists(this.KEY)
+    const exists = await redis.exists(this.KEY);
 
-        if (!exists) {
-            await redis.setnx(this.KEY, this.Initial)
-        }
+    if (exists) {
+      await redis.setnx(this.KEY, this.Initial);
     }
+  }
 
-    async generate(): Promise<number> {
-        const redis = this.redisService.getClient()
-        return redis.incr(this.KEY)
-    }
+  async generate(): Promise<number> {
+    const redis = this.redisService.getClient();
+    return redis.incr(this.KEY);
+  }
 }

@@ -1,16 +1,24 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable } from '@nestjs/common';
 //import puppeteer from 'puppeteer'
-import * as dayjs from 'dayjs'
-import * as path from 'path'
-import * as fs from 'fs'
-import { RedisIdService } from 'src/services/utils/redis-id.service'
-import { chromium } from 'playwright'
+import * as dayjs from 'dayjs';
+import * as path from 'path';
+import * as fs from 'fs';
+import { RedisIdService } from 'src/services/utils/redis-id.service';
+import { chromium } from 'playwright';
+
+interface ItemProps {
+  name: string;
+  ref: string;
+  value: string;
+  description: string;
+  date: string;
+}
 
 @Injectable()
 export class ReceiptService {
   //private receiptNumber = 1852
 
-  constructor(private readonly redis: RedisIdService) { }
+  constructor(private readonly redis: RedisIdService) {}
 
   /*private getNextReceiptNumber(): number {
     this.receiptNumber += 1
@@ -18,26 +26,37 @@ export class ReceiptService {
   }*/
 
   private getSignatureBase64(): string {
-    const filePath = path.resolve(__dirname, '../../assets/signature.png')
-    const file = fs.readFileSync(filePath)
+    const filePath = path.resolve(__dirname, '../../assets/signature.png');
+    const file = fs.readFileSync(filePath);
 
-    return `data:image/png;base64,${file.toString('base64')}`
+    return `data:image/png;base64,${file.toString('base64')}`;
   }
 
   private formatDate(date: Date): string {
-    return dayjs(date).format('DD / MM / YYYY')
+    return dayjs(date).format('DD / MM / YYYY');
   }
 
   private formatPeriod(date: Date): string {
-    return dayjs(date).format('MM / YYYY')
+    return dayjs(date).format('MM / YYYY');
+  }
+
+  private formatValue(value: number): string {
+    if (!value || isNaN(value)) return '';
+
+    return Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+    }).format(value / 100);
   }
 
   private buildHTML(data: {
-    receiptNumber: number
-    date: string
-    period: string
+    receiptNumber: number;
+    date: string;
+    period: string;
+    item?: ItemProps;
   }): string {
-    const signature = this.getSignatureBase64()
+    const signature = this.getSignatureBase64();
     return `
 <!DOCTYPE html>
 <html>
@@ -106,7 +125,7 @@ export class ReceiptService {
   </div>
 
   <div class="block">
-    a quantia de R$ 100,00 (cem reais), referente à prestação de serviços de manutenção mensal do site.
+    a quantia de ${data.item?.value}, referente à ${data.item?.description} ${data.item?.ref}.
   </div>
 
   <div class="block spaced">
@@ -140,21 +159,38 @@ export class ReceiptService {
 
 </body>
 </html>
-`
+`;
   }
 
   async generate(): Promise<Buffer> {
-    const now = new Date()
+    const now = new Date();
 
-    const receiptNumber = await this.redis.generate()
-    const date = this.formatDate(now)
-    const period = this.formatPeriod(now)
+    const receiptNumber = await this.redis.generate();
+    const date = this.formatDate(now);
+    const period = this.formatPeriod(now);
+
+    const mensal: ItemProps = {
+      name: 'Manutenção Mensal',
+      ref: 'solurh.pro',
+      value: this.formatValue(10000),
+      description: 'Manutenção mensal do site',
+      date,
+    };
+
+    const item: ItemProps = {
+      name: 'Renovação de Domínio',
+      ref: 'solurh.pro',
+      value: this.formatValue(16710),
+      description: 'Renovação anual de domínio',
+      date,
+    };
 
     const html = this.buildHTML({
       receiptNumber,
       date,
-      period
-    })
+      period,
+      item: mensal,
+    });
 
     /*const browser = await puppeteer.launch({
       executablePath: '/usr/bin/chromium',
@@ -162,19 +198,19 @@ export class ReceiptService {
       headless: true
     })*/
     const browser = await chromium.launch({
-      args: ['--no-sandbox']
-    })
+      args: ['--no-sandbox'],
+    });
 
-    const page = await browser.newPage()
-    await page.setContent(html /*,{ waitUntil: 'networkidle0'}*/)
+    const page = await browser.newPage();
+    await page.setContent(html /*,{ waitUntil: 'networkidle0'}*/);
 
     const pdf = await page.pdf({
       format: 'A4',
-      printBackground: true
-    })
+      printBackground: true,
+    });
 
-    await browser.close()
+    await browser.close();
 
-    return Buffer.from(pdf)
+    return Buffer.from(pdf);
   }
 }
